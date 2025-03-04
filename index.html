@@ -80,10 +80,10 @@
             <button id="pauseAudio" disabled>Pausar</button>
         </div>
         <div id="arrowContainer">
-            <button class="arrow" id="up" style="grid-area: up;">↑</button>
-            <button class="arrow" id="left" style="grid-area: left;">←</button>
-            <button class="arrow" id="right" style="grid-area: right;">→</button>
-            <button class="arrow" id="down" style="grid-area: down;">↓</button>
+            <button class="arrow" id="up">↑</button>
+            <button class="arrow" id="left">←</button>
+            <button class="arrow" id="right">→</button>
+            <button class="arrow" id="down">↓</button>
         </div>
     </div>
 
@@ -183,17 +183,25 @@
             player.dy = dy;
         }
 
-        upBtn.addEventListener('touchstart', () => setDirection(0, -1));
-        leftBtn.addEventListener('touchstart', () => setDirection(-1, 0));
-        rightBtn.addEventListener('touchstart', () => setDirection(1, 0));
-        downBtn.addEventListener('touchstart', () => setDirection(0, 1));
+        // Solo un toque para mantener el movimiento
+        upBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            setDirection(0, -1);
+        });
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            setDirection(-1, 0);
+        });
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            setDirection(1, 0);
+        });
+        downBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            setDirection(0, 1);
+        });
 
-        upBtn.addEventListener('touchend', () => setDirection(0, 0));
-        leftBtn.addEventListener('touchend', () => setDirection(0, 0));
-        rightBtn.addEventListener('touchend', () => setDirection(0, 0));
-        downBtn.addEventListener('touchend', () => setDirection(0, 0));
-
-        // Controles de teclado
+        // Controles de teclado (opcional para PC)
         document.addEventListener('keydown', (event) => {
             const LEFT_KEY = 37;
             const RIGHT_KEY = 39;
