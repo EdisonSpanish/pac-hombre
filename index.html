@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man Clásico - Versión Móvil</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #000000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #title {
+            font-size: 36px;
+            color: #ffff00;
+            text-shadow: 2px 2px 4px #000000;
+            margin-bottom: 5px;
+        }
+        #stats {
+            font-size: 16px;
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+        canvas {
+            border: 2px solid #ffffff;
+            background-color: #000000;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+        }
+        #controls {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        #audioControls {
+            margin-bottom: 10px;
+        }
+        .arrow {
+            width: 50px;
+            height: 50px;
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .arrow:active {
+            background-color: #cccccc;
+        }
+        #arrowContainer {
+            display: grid;
+            grid-template-areas: 
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="title">Pac-Man Móvil</div>
+    <div id="stats">Puntuación: 0 | Tiempo: 0s</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="controls">
+        <div id="audioControls">
+            <input type="file" id="audioInput" accept=".mp3" style="display: none;">
+            <button id="loadAudio">Cargar Música</button>
+            <button id="playAudio" disabled>Reproducir</button>
+            <button id="pauseAudio" disabled>Pausar</button>
+        </div>
+        <div id="arrowContainer">
+            <button class="arrow" id="up" style="grid-area: up;">↑</button>
+            <button class="arrow" id="left" style="grid-area: left;">←</button>
+            <button class="arrow" id="right" style="grid-area: right;">→</button>
+            <button class="arrow" id="down" style="grid-area: down;">↓</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const stats = document.getElementById('stats');
+
+        const tileSize = 20;
+        const tileCountX = canvas.width / tileSize;
+        const tileCountY = canvas.height / tileSize;
+
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        let player = {
+            x: 1,
+            y: 1,
+            dx: 0,
+            dy: 0,
+            color: '#ffff00',
+            protectionTime: 0
+        };
+
+        let burgers = [
+            { x: 4, y: 1, color: '#ff0000' }, { x: 12, y: 5, color: '#0000ff' },
+            { x: 3, y: 11, color: '#00ffff' }, { x: 11, y: 15, color: '#9900ff' },
+            { x: 18, y: 9, color: '#ff6666' }
+        ];
+
+        let enemies = [
+            { x: 5, y: 5, dx: 1, dy: 0 }, { x: 15, y: 15, dx: -1, dy: 0 },
+            { x: 10, y: 10, dx: 0, dy: 1 }, { x: 3, y: 17, dx: 0, dy: -1 },
+            { x: 17, y: 3, dx: -1, dy: 0 }, { x: 8, y: 9, dx: 1, dy: 0 },
+            { x: 13, y: 13, dx: 0, dy: -1 }, { x: 6, y: 2, dx: 1, dy: 0 }
+        ];
+        let respawnQueue = [];
+
+        let score = 0;
+        let totalDots = 0;
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[y].length; x++) {
+                if (map[y][x] === 0) totalDots++;
+            }
+        }
+        let dotsCollected = 0;
+        let startTime = Date.now();
+        const timeLimit = 150;
+
+        // Audio
+        let audio = new Audio();
+        const audioInput = document.getElementById('audioInput');
+        const loadAudioBtn = document.getElementById('loadAudio');
+        const playAudioBtn = document.getElementById('playAudio');
+        const pauseAudioBtn = document.getElementById('pauseAudio');
+
+        loadAudioBtn.addEventListener('click', () => audioInput.click());
+        audioInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type === 'audio/mpeg') {
+                audio.src = URL.createObjectURL(file);
+                playAudioBtn.disabled = false;
+                pauseAudioBtn.disabled = false;
+            }
+        });
+        playAudioBtn.addEventListener('click', () => audio.play());
+        pauseAudioBtn.addEventListener('click', () => audio.pause());
+
+        // Controles táctiles
+        const upBtn = document.getElementById('up');
+        const leftBtn = document.getElementById('left');
+        const rightBtn = document.getElementById('right');
+        const downBtn = document.getElementById('down');
+
+        function setDirection(dx, dy) {
+            player.dx = dx;
+            player.dy = dy;
+        }
+
+        upBtn.addEventListener('touchstart', () => setDirection(0, -1));
+        leftBtn.addEventListener('touchstart', () => setDirection(-1, 0));
+        rightBtn.addEventListener('touchstart', () => setDirection(1, 0));
+        downBtn.addEventListener('touchstart', () => setDirection(0, 1));
+
+        upBtn.addEventListener('touchend', () => setDirection(0, 0));
+        leftBtn.addEventListener('touchend', () => setDirection(0, 0));
+        rightBtn.addEventListener('touchend', () => setDirection(0, 0));
+        downBtn.addEventListener('touchend', () => setDirection(0, 0));
+
+        // Controles de teclado
+        document.addEventListener('keydown', (event) => {
+            const LEFT_KEY = 37;
+            const RIGHT_KEY = 39;
+            const UP_KEY = 38;
+            const DOWN_KEY = 40;
+
+            const keyPressed = event.keyCode;
+            if (keyPressed === LEFT_KEY) setDirection(-1, 0);
+            if (keyPressed === RIGHT_KEY) setDirection(1, 0);
+            if (keyPressed === UP_KEY) setDirection(0, -1);
+            if (keyPressed === DOWN_KEY) setDirection(0, 1);
+        });
+
+        document.addEventListener('keyup', () => setDirection(0, 0));
+
+        function moveEnemies() {
+            enemies.forEach(enemy => {
+                const distanceX = Math.abs(player.x - enemy.x);
+                const distanceY = Math.abs(player.y - enemy.y);
+                const chaseDistance = 5;
+
+                if (distanceX + distanceY <= chaseDistance) {
+                    if (distanceX > distanceY) {
+                        enemy.dx = player.x > enemy.x ? 1 : -1;
+                        enemy.dy = 0;
+                    } else {
+                        enemy.dy = player.y > enemy.y ? 1 : -1;
+                        enemy.dx = 0;
+                    }
+                } else {
+                    const directions = [[1,0], [-1,0], [0,1], [0,-1]];
+                    const [dx, dy] = directions[Math.floor(Math.random() * 4)];
+                    enemy.dx = dx;
+                    enemy.dy = dy;
+                }
+
+                let newX = enemy.x + enemy.dx;
+                let newY = enemy.y + enemy.dy;
+                if (map[newY] && map[newY][newX] !== 1) {
+                    enemy.x = newX;
+                    enemy.y = newY;
+                }
+            });
+        }
+
+        function respawnEnemy() {
+            if (respawnQueue.length > 0) {
+                const now = Date.now();
+                for (let i = respawnQueue.length - 1; i >= 0; i--) {
+                    if (now >= respawnQueue[i].time) {
+                        enemies.push({
+                            x: respawnQueue[i].x,
+                            y: respawnQueue[i].y,
+                            dx: 1,
+                            dy: 0
+                        });
+                        respawnQueue.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function checkCollisions() {
+            const isProtected = player.protectionTime && Date.now() - player.protectionTime <= 5000;
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                if (player.x === enemies[i].x && player.y === enemies[i].y) {
+                    if (isProtected) {
+                        respawnQueue.push({
+                            x: enemies[i].x,
+                            y: enemies[i].y,
+                            time: Date.now() + 5000
+                        });
+                        enemies.splice(i, 1);
+                        score += 50;
+                    } else {
+                        gameOver();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function drawGame() {
+            const newX = player.x + player.dx;
+            const newY = player.y + player.dy;
+
+            if (map[newY] && map[newY][newX] !== 1) {
+                player.x = newX;
+                player.y = newY;
+                if (map[player.y][player.x] === 0) {
+                    map[player.y][player.x] = 2;
+                    score += 10;
+                    dotsCollected++;
+                    if (dotsCollected === totalDots) {
+                        winGame();
+                        return;
+                    }
+                }
+            }
+
+            burgers = burgers.filter(burger => {
+                if (player.x === burger.x && player.y === burger.y) {
+                    player.color = burger.color;
+                    player.protectionTime = Date.now();
+                    return false;
+                }
+                return true;
+            });
+
+            if (player.protectionTime && Date.now() - player.protectionTime > 5000) {
+                player.color = '#ffff00';
+                player.protectionTime = 0;
+            }
+
+            moveEnemies();
+            if (checkCollisions()) return;
+            respawnEnemy();
+
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            if (elapsedTime >= timeLimit) {
+                gameOver();
+                return;
+            }
+
+            stats.textContent = `Puntuación: ${score} | Tiempo: ${elapsedTime}s / ${timeLimit}s`;
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[y].length; x++) {
+                    if (map[y][x] === 1) {
+                        ctx.fillStyle = '#0000ff';
+                        ctx.fillRect(x * tileSize, y * tileSize, tileSize - 1, tileSize - 1);
+                    } else if (map[y][x] === 0) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(x * tileSize + tileSize / 2 - 2, y * tileSize + tileSize / 2 - 2, 4, 4);
+                    }
+                }
+            }
+
+            burgers.forEach(burger => {
+                ctx.font = `${tileSize}px Arial`;
+                ctx.fillStyle = burger.color;
+                ctx.fillText('🍔', burger.x * tileSize, burger.y * tileSize + tileSize - 2);
+            });
+
+            enemies.forEach(enemy => {
+                ctx.font = `${tileSize}px Arial`;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillText('😡', enemy.x * tileSize, enemy.y * tileSize + tileSize - 2);
+            });
+
+            ctx.font = `${tileSize}px Arial`;
+            ctx.fillStyle = player.color;
+            ctx.fillText('😊', player.x * tileSize, player.y * tileSize + tileSize - 2);
+
+            setTimeout(drawGame, 300);
+        }
+
+        function gameOver() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            alert(`¡Juego terminado! ${elapsedTime >= timeLimit ? 'Se acabó el tiempo' : 'Te atraparon'}. Puntuación: ${score} | Tiempo: ${elapsedTime}s`);
+            audio.pause();
+            resetGame();
+        }
+
+        function winGame() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            alert(`¡Ganaste! Recolectaste todos los puntos. Puntuación: ${score} | Tiempo: ${elapsedTime}s`);
+            audio.pause();
+            resetGame();
+        }
+
+        function resetGame() {
+            player = { x: 1, y: 1, dx: 0, dy: 0, color: '#ffff00', protectionTime: 0 };
+            burgers = [
+                { x: 4, y: 1, color: '#ff0000' }, { x: 12, y: 5, color: '#0000ff' },
+                { x: 3, y: 11, color: '#00ffff' }, { x: 11, y: 15, color: '#9900ff' },
+                { x: 18, y: 9, color: '#ff6666' }
+            ];
+            enemies = [
+                { x: 5, y: 5, dx: 1, dy: 0 }, { x: 15, y: 15, dx: -1, dy: 0 },
+                { x: 10, y: 10, dx: 0, dy: 1 }, { x: 3, y: 17, dx: 0, dy: -1 },
+                { x: 17, y: 3, dx: -1, dy: 0 }, { x: 8, y: 9, dx: 1, dy: 0 },
+                { x: 13, y: 13, dx: 0, dy: -1 }, { x: 6, y: 2, dx: 1, dy: 0 }
+            ];
+            respawnQueue = [];
+            score = 0;
+            dotsCollected = 0;
+            startTime = Date.now();
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[y].length; x++) {
+                    if (map[y][x] === 2) map[y][x] = 0;
+                }
+            }
+            drawGame();
+        }
+
+        drawGame();
+    </script>
+</body>
+</html>
