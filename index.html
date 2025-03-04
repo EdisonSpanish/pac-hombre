@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pac-Man Clásico - Versión Móvil</title>
     <style>
         body {
@@ -15,10 +15,11 @@
             background: #000000;
             font-family: Arial, sans-serif;
             overflow: hidden;
+            touch-action: none; /* Evita comportamientos táctiles no deseados */
         }
         #title {
             font-size: 36px;
-            color: #ffff00;
+            color: #ffff Bob;
             text-shadow: 2px 2px 4px #000000;
             margin-bottom: 5px;
         }
@@ -45,11 +46,11 @@
             margin-bottom: 10px;
         }
         .arrow {
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             background-color: #ffffff;
             color: #000000;
-            font-size: 24px;
+            font-size: 28px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
@@ -183,7 +184,7 @@
             player.dy = dy;
         }
 
-        // Solo un toque para mantener el movimiento
+        // Eventos táctiles optimizados
         upBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             setDirection(0, -1);
@@ -360,7 +361,7 @@
             ctx.fillStyle = player.color;
             ctx.fillText('😊', player.x * tileSize, player.y * tileSize + tileSize - 2);
 
-            setTimeout(drawGame, 300);
+            requestAnimationFrame(drawGame); // Reemplazar setTimeout por requestAnimationFrame
         }
 
         function gameOver() {
