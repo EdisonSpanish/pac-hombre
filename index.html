@@ -135,14 +135,10 @@
             protectionTime: 0
         };
 
-        // Aumentar a 6 hamburguesas
         let burgers = [
-            { x: 4, y: 1, color: '#ff0000' },   // Rojo
-            { x: 12, y: 5, color: '#0000ff' },  // Azul
-            { x: 3, y: 11, color: '#00ffff' },  // Cian
-            { x: 11, y: 15, color: '#9900ff' }, // Púrpura
-            { x: 18, y: 9, color: '#ff6666' },  // Rosa claro
-            { x: 7, y: 7, color: '#ff9900' }    // Naranja (nueva)
+            { x: 4, y: 1, color: '#ff0000' }, { x: 12, y: 5, color: '#0000ff' },
+            { x: 3, y: 11, color: '#00ffff' }, { x: 11, y: 15, color: '#9900ff' },
+            { x: 18, y: 9, color: '#ff6666' }, { x: 7, y: 7, color: '#ff9900' }
         ];
 
         let enemies = [
@@ -163,6 +159,10 @@
         let dotsCollected = 0;
         let startTime = Date.now();
         const timeLimit = 150;
+
+        // Control de velocidad para enemigos
+        let lastEnemyMoveTime = 0;
+        const enemyMoveInterval = 300; // 300ms, igual que el ritmo original
 
         // Audio
         let audio = new Audio();
@@ -227,34 +227,37 @@
 
         document.addEventListener('keyup', () => setDirection(0, 0));
 
-        function moveEnemies() {
-            enemies.forEach(enemy => {
-                const distanceX = Math.abs(player.x - enemy.x);
-                const distanceY = Math.abs(player.y - enemy.y);
-                const chaseDistance = 5;
+        function moveEnemies(timestamp) {
+            if (timestamp - lastEnemyMoveTime >= enemyMoveInterval) {
+                enemies.forEach(enemy => {
+                    const distanceX = Math.abs(player.x - enemy.x);
+                    const distanceY = Math.abs(player.y - enemy.y);
+                    const chaseDistance = 5;
 
-                if (distanceX + distanceY <= chaseDistance) {
-                    if (distanceX > distanceY) {
-                        enemy.dx = player.x > enemy.x ? 1 : -1;
-                        enemy.dy = 0;
+                    if (distanceX + distanceY <= chaseDistance) {
+                        if (distanceX > distanceY) {
+                            enemy.dx = player.x > enemy.x ? 1 : -1;
+                            enemy.dy = 0;
+                        } else {
+                            enemy.dy = player.y > enemy.y ? 1 : -1;
+                            enemy.dx = 0;
+                        }
                     } else {
-                        enemy.dy = player.y > enemy.y ? 1 : -1;
-                        enemy.dx = 0;
+                        const directions = [[1,0], [-1,0], [0,1], [0,-1]];
+                        const [dx, dy] = directions[Math.floor(Math.random() * 4)];
+                        enemy.dx = dx;
+                        enemy.dy = dy;
                     }
-                } else {
-                    const directions = [[1,0], [-1,0], [0,1], [0,-1]];
-                    const [dx, dy] = directions[Math.floor(Math.random() * 4)];
-                    enemy.dx = dx;
-                    enemy.dy = dy;
-                }
 
-                let newX = enemy.x + enemy.dx;
-                let newY = enemy.y + enemy.dy;
-                if (map[newY] && map[newY][newX] !== 1) {
-                    enemy.x = newX;
-                    enemy.y = newY;
-                }
-            });
+                    let newX = enemy.x + enemy.dx;
+                    let newY = enemy.y + enemy.dy;
+                    if (map[newY] && map[newY][newX] !== 1) {
+                        enemy.x = newX;
+                        enemy.y = newY;
+                    }
+                });
+                lastEnemyMoveTime = timestamp;
+            }
         }
 
         function respawnEnemy() {
@@ -295,49 +298,55 @@
             return false;
         }
 
-        function drawGame() {
-            const newX = player.x + player.dx;
-            const newY = player.y + player.dy;
+        let lastUpdateTime = 0;
+        const updateInterval = 300; // 300ms para el jugador
 
-            if (map[newY] && map[newY][newX] !== 1) {
-                player.x = newX;
-                player.y = newY;
-                if (map[player.y][player.x] === 0) {
-                    map[player.y][player.x] = 2;
-                    score += 10;
-                    dotsCollected++;
-                    if (dotsCollected === totalDots) {
-                        winGame();
-                        return;
+        function drawGame(timestamp) {
+            if (timestamp - lastUpdateTime >= updateInterval) {
+                const newX = player.x + player.dx;
+                const newY = player.y + player.dy;
+
+                if (map[newY] && map[newY][newX] !== 1) {
+                    player.x = newX;
+                    player.y = newY;
+                    if (map[player.y][player.x] === 0) {
+                        map[player.y][player.x] = 2;
+                        score += 10;
+                        dotsCollected++;
+                        if (dotsCollected === totalDots) {
+                            winGame();
+                            return;
+                        }
                     }
                 }
-            }
 
-            burgers = burgers.filter(burger => {
-                if (player.x === burger.x && player.y === burger.y) {
-                    player.color = burger.color;
-                    player.protectionTime = Date.now();
-                    return false;
+                burgers = burgers.filter(burger => {
+                    if (player.x === burger.x && player.y === burger.y) {
+                        player.color = burger.color;
+                        player.protectionTime = Date.now();
+                        return false;
+                    }
+                    return true;
+                });
+
+                if (player.protectionTime && Date.now() - player.protectionTime > 5000) {
+                    player.color = '#ffff00';
+                    player.protectionTime = 0;
                 }
-                return true;
-            });
 
-            if (player.protectionTime && Date.now() - player.protectionTime > 5000) {
-                player.color = '#ffff00';
-                player.protectionTime = 0;
+                moveEnemies(timestamp);
+                if (checkCollisions()) return;
+                respawnEnemy();
+
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                if (elapsedTime >= timeLimit) {
+                    gameOver();
+                    return;
+                }
+
+                stats.textContent = `Puntuación: ${score} | Tiempo: ${elapsedTime}s / ${timeLimit}s`;
+                lastUpdateTime = timestamp;
             }
-
-            moveEnemies();
-            if (checkCollisions()) return;
-            respawnEnemy();
-
-            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-            if (elapsedTime >= timeLimit) {
-                gameOver();
-                return;
-            }
-
-            stats.textContent = `Puntuación: ${score} | Tiempo: ${elapsedTime}s / ${timeLimit}s`;
 
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -404,6 +413,8 @@
             score = 0;
             dotsCollected = 0;
             startTime = Date.now();
+            lastEnemyMoveTime = 0;
+            lastUpdateTime = 0;
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     if (map[y][x] === 2) map[y][x] = 0;
@@ -412,7 +423,7 @@
             drawGame();
         }
 
-        drawGame();
+        requestAnimationFrame(drawGame);
     </script>
 </body>
 </html>
