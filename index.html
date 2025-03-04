@@ -15,11 +15,11 @@
             background: #000000;
             font-family: Arial, sans-serif;
             overflow: hidden;
-            touch-action: none; /* Evita comportamientos táctiles no deseados */
+            touch-action: none;
         }
         #title {
             font-size: 36px;
-            color: #ffff Bob;
+            color: #ffff00;
             text-shadow: 2px 2px 4px #000000;
             margin-bottom: 5px;
         }
@@ -60,11 +60,15 @@
             background-color: #cccccc;
         }
         #arrowContainer {
-            display: grid;
-            grid-template-areas: 
-                ". up ."
-                "left . right"
-                ". down .";
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 300px;
+        }
+        #centerArrows {
+            display: flex;
+            flex-direction: column;
             gap: 5px;
         }
     </style>
@@ -81,10 +85,12 @@
             <button id="pauseAudio" disabled>Pausar</button>
         </div>
         <div id="arrowContainer">
-            <button class="arrow" id="up">↑</button>
             <button class="arrow" id="left">←</button>
+            <div id="centerArrows">
+                <button class="arrow" id="up">↑</button>
+                <button class="arrow" id="down">↓</button>
+            </div>
             <button class="arrow" id="right">→</button>
-            <button class="arrow" id="down">↓</button>
         </div>
     </div>
 
@@ -129,10 +135,14 @@
             protectionTime: 0
         };
 
+        // Aumentar a 6 hamburguesas
         let burgers = [
-            { x: 4, y: 1, color: '#ff0000' }, { x: 12, y: 5, color: '#0000ff' },
-            { x: 3, y: 11, color: '#00ffff' }, { x: 11, y: 15, color: '#9900ff' },
-            { x: 18, y: 9, color: '#ff6666' }
+            { x: 4, y: 1, color: '#ff0000' },   // Rojo
+            { x: 12, y: 5, color: '#0000ff' },  // Azul
+            { x: 3, y: 11, color: '#00ffff' },  // Cian
+            { x: 11, y: 15, color: '#9900ff' }, // Púrpura
+            { x: 18, y: 9, color: '#ff6666' },  // Rosa claro
+            { x: 7, y: 7, color: '#ff9900' }    // Naranja (nueva)
         ];
 
         let enemies = [
@@ -184,7 +194,6 @@
             player.dy = dy;
         }
 
-        // Eventos táctiles optimizados
         upBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             setDirection(0, -1);
@@ -361,7 +370,7 @@
             ctx.fillStyle = player.color;
             ctx.fillText('😊', player.x * tileSize, player.y * tileSize + tileSize - 2);
 
-            requestAnimationFrame(drawGame); // Reemplazar setTimeout por requestAnimationFrame
+            requestAnimationFrame(drawGame);
         }
 
         function gameOver() {
@@ -383,7 +392,7 @@
             burgers = [
                 { x: 4, y: 1, color: '#ff0000' }, { x: 12, y: 5, color: '#0000ff' },
                 { x: 3, y: 11, color: '#00ffff' }, { x: 11, y: 15, color: '#9900ff' },
-                { x: 18, y: 9, color: '#ff6666' }
+                { x: 18, y: 9, color: '#ff6666' }, { x: 7, y: 7, color: '#ff9900' }
             ];
             enemies = [
                 { x: 5, y: 5, dx: 1, dy: 0 }, { x: 15, y: 15, dx: -1, dy: 0 },
